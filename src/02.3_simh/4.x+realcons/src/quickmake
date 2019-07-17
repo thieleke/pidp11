@@ -77,7 +77,8 @@ NETWORK_OPT = -DUSE_NETWORK -isystem $(SYSROOTS)/usr/local/include $(LIBPCAP) -D
 
 CC_DEFS =
 OS_CCDEFS = -D_GNU_SOURCE
-CC_DBG_FLAGS = -O2 -Wno-unused-result
+#CC_DBG_FLAGS = -O2 -Wno-unused-result
+CC_DBG_FLAGS = -O3 -mtune=cortex-a53 -funsafe-math-optimizations -Wno-unused-result -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits 
 LDFLAGS = -lrt -lm  -lpthread -ldl -lreadline
 CC = gcc -std=c99 -U__STRICT_ANSI__  $(CC_DEFS) $(OS_CCDEFS) -I $(SRC) $(CC_DBG_FLAGS) -UUSE_REALCONS
 CC_OUTSPEC = -o $@

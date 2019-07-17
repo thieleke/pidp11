@@ -9,7 +9,8 @@
 
 # own settings
 OS_CCDEFS =
-CC_DBG_FLAGS = -ggdb3 -O0
+#CC_DBG_FLAGS = -ggdb3 -O0
+CC_DBG_FLAGS = -O3
 LDFLAGS = -pthread
 
 	# all other cases: X86
