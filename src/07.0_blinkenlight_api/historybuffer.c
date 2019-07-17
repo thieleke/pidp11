@@ -1,6 +1,6 @@
 /* historybuffer.h: FIFO for blinkenlight APi control value history
 
- Copyright (c) 2016, Joerg Hoppe
+ Copyright (c) 2016-2019, Joerg Hoppe
  j_hoppe@t-online.de, www.retrocmp.com
 
  Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,7 +20,7 @@
  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
+ 03-FEB-2019	JH		mutex to make read and write to buffer atomic (PiDP11 server crashes)
  12-Mar-2016	JH      created
  */
 #include <stdlib.h>
@@ -46,6 +46,21 @@ static uint64_t maxu64(uint64_t a, uint64_t b)
     else
         return b;
 }
+
+// needed for debugging the "server11 crash"
+#define DBG_ASSERT(cond)	do{	\
+	if (!(cond)) { \
+		fprintf(stderr, "DBG_ASSERT: "#cond" failed in %s #%d\n", __FILE__, __LINE__) ;	\
+		break_here() ;	\
+		exit(1) ; \
+		} \
+} while (0)
+
+
+static void break_here()
+{
+}
+
 
 /*
  * high resolution system ticks in micro seconds
@@ -97,11 +112,21 @@ historybuffer_t *historybuffer_create(struct blinkenlight_control_struct *c, uns
     assert(_this->capacity > 0);
     _this->buffer = (historybuffer_entry_t *) calloc(capacity, sizeof(historybuffer_entry_t));
     _this->startpos = _this->endpos = 0;
+#ifdef USE_MUTEX
+    if (pthread_mutex_init(&_this->mutex, NULL) != 0)  { 
+        fprintf(stderr, "\n mutex_init() has failed\n"); 
+		exit(1) ;
+    } 		
+#endif
+	
     return _this;
 }
 
 void historybuffer_destroy(historybuffer_t *_this)
 {
+#ifdef USE_MUTEX
+    pthread_mutex_destroy(&_this->mutex) ;
+#endif
     free(_this->buffer);
     free(_this);
 }
@@ -192,6 +217,9 @@ historybuffer_entry_t * historybuffer_poll(historybuffer_t *_this)
 void historybuffer_set_val(historybuffer_t *_this, uint64_t now_us, uint64_t value)
 {
     historybuffer_entry_t *hbe;
+#ifdef USE_MUTEX
+	pthread_mutex_lock(&_this->mutex) ; // inhinit concurrent reads
+#endif
 
     if (historybuffer_fill(_this) + 1 >= _this->capacity)
         // overflow: remove oldest
@@ -215,6 +243,10 @@ void historybuffer_set_val(historybuffer_t *_this, uint64_t now_us, uint64_t val
         hbe->timestamp_end_us = 0; // currently valid.
         hbe->value = value;
     }
+	
+#ifdef USE_MUTEX
+	pthread_mutex_unlock(&_this->mutex) ; // allow read
+#endif	
 }
 
 /*
@@ -260,7 +292,9 @@ void historybuffer_get_average_vals(historybuffer_t *_this, uint64_t averaging_i
     last_idx = historybuffer_fill(_this) - 1;
     if (last_idx < 0)
         return; // buffer empty, return all 0's
-
+#ifdef USE_MUTEX
+	pthread_mutex_lock(&_this->mutex) ; // inhibit concurrent writes
+#endif
     hbe = historybuffer_get(_this, last_idx);
     assert(hbe != NULL);
 
@@ -271,6 +305,9 @@ void historybuffer_get_average_vals(historybuffer_t *_this, uint64_t averaging_i
             for (bitidx = 0; bitidx < _this->control->value_bitlen; bitidx++)
                 if ((hbe->value >> bitidx) & 1)
                     _this->control->averaged_value_bits[bitidx] = 1;
+#ifdef USE_MUTEX
+		pthread_mutex_unlock(&_this->mutex) ; // allow write
+#endif
         return;
     }
 
@@ -322,6 +359,9 @@ void historybuffer_get_average_vals(historybuffer_t *_this, uint64_t averaging_i
             else
                 _this->control->averaged_value_bits[bitidx] = 0;
         }
+#ifdef USE_MUTEX		
+	pthread_mutex_unlock(&_this->mutex) ; // allow write
+#endif
 }
 
 /*
