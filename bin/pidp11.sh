@@ -12,12 +12,15 @@ sudo chmod a+rw /run/pidp11
 #export TERM=VT100
 
 echo "*** Start portmapper for RPC service, OK to fail if already running"
-sudo rpcbind & 
+sudo rpcbind &
 sleep 2
 
 while
 	# Kill possibly still running instances of Blinkenlight server ... only one allowed
 	sudo kill `pidof server11` >/dev/null 2>/dev/null
+        sudo rm -f /run/pidp11/tmpsimhcommand.txt >/dev/null 2>/dev/null
+        sudo rm -f /run/pidp11/cwd >/dev/null 2>/dev/null
+
 	#sleep 2
 
 
@@ -40,11 +43,12 @@ while
 	(echo cd /opt/pidp11/systems/$sel;
 	echo do boot.ini
 	) >/run/pidp11/tmpsimhcommand.txt
+        echo "/opt/pidp11/systems/$sel" > /run/pidp11/cwd
 	echo "*** Start client/server ***"
 	sudo ./server11 &
 	sleep 2
 	sudo ./client11 /run/pidp11/tmpsimhcommand.txt
-	
+
 	# after simh exits, check if a newly created command file now says exit (meaning pls reboot)
 	if [[ $(< /run/pidp11/tmpsimhcommand.txt) == "exit" ]]; then
 		reboot=1
@@ -60,5 +64,5 @@ done
 	sudo kill `pidof server11` >/dev/null 2>/dev/null
 	# Delete tmp simh command file
 	sudo rm /run/pidp11/*.txt
-	
+        sudo rm -f /run/pidp11/cwd >/dev/null 2>/dev/null
 	#export TERM=$oldterm
