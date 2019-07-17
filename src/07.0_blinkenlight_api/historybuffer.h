@@ -21,6 +21,7 @@
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+ 03-FEB-2019	JH		mutex to make read and write to buffer atomic (PiDP11 server crashes)
  12-Mar-2016	JH      created
  */
 
@@ -29,6 +30,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#ifndef WIN32
+// under Windows only simulating server and pthread not available
+#define USE_MUTEX
+#include <pthread.h>
+#endif
 
 /* single entry in history buffer */
 typedef struct
@@ -48,6 +54,10 @@ typedef struct
 	int endpos; // next free item to write
 	// empty: readidx == writeidx
 	historybuffer_entry_t *buffer;
+#ifdef USE_MUTEX
+	pthread_mutex_t mutex; // exclusive access to either read or write functions
+#endif	
+
 } historybuffer_t;
 
 uint64_t historybuffer_now_us(void);
