@@ -20,6 +20,7 @@
  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+ 14-Aug-2019  OV    fix for Raspberry Pi 4's different pullup configuration
  01-Jul-2017  MH    remove INP_GPIO before OUT_GPIO and change knobValue
  01-Apr-2016  OV    almost perfect before VCF SE
  15-Mar-2016  JH    display patterns for brightness levels
@@ -81,6 +82,14 @@ long intervl = 50000; // light each row of leds 50 us
 #define GPIO_PULL *(gpio.addr + 37) // pull up/pull down
 #define GPIO_PULLCLK0 *(gpio.addr + 38) // pull up/pull down clock
 
+// Pi 4 update
+/* https://github.com/RPi-Distro/raspi-gpio/blob/master/raspi-gpio.c */	
+/* 2711 has a different mechanism for pin pull-up/down/enable  */
+#define GPPUPPDN0                57        /* Pin pull-up/down for pins 15:0  */
+#define GPPUPPDN1                58        /* Pin pull-up/down for pins 31:16 */
+#define GPPUPPDN2                59        /* Pin pull-up/down for pins 47:32 */
+#define GPPUPPDN3                60        /* Pin pull-up/down for pins 57:48 */
+
 // Exposes the physical address defined in the passed structure using mmap on /dev/mem
 int map_peripheral(struct bcm2835_peripheral *p)
 {
@@ -122,8 +131,10 @@ void *blink(int *terminate)
 	gpio.addr_p = bcm_host_get_peripheral_address() + +0x200000;
 	if (gpio.addr_p == 0x20200000)
 		printf("*** RPi Plus detected\n");
-	else
+	else if (gpio.addr_p == 0x3f000000)  
 		printf("*** RPi 2/3/Z detected\n");
+	else if (gpio.addr_p == 0xfe200000)  
+		printf("*** RPi 4 detected\n");
 
 	// printf("Priority max SCHED_FIFO = %u\n",sched_get_priority_max(SCHED_FIFO) );
 
@@ -155,6 +166,61 @@ void *blink(int *terminate)
 		INP_GPIO(rows[i]);
 	}
 
+if (gpio.addr_p==0xfe200000)
+{
+	//printf("Configuring pullups for Pi 4\r\n");
+	/* https://github.com/RPi-Distro/raspi-gpio/blob/master/raspi-gpio.c */	
+	/* 2711 has a different mechanism for pin pull-up/down/enable  */
+	int gpiox;
+	int pullreg;
+	int pullshift;
+    unsigned int pullbits;
+    unsigned int pull;
+
+	// GPIO column pins
+	for (i=0;i<12;i++)
+	{
+		gpiox = cols[i];
+		pullreg = GPPUPPDN0 + (gpiox>>4);
+		pullshift = (gpiox & 0xf) << 1;
+		pull = 1;	// pullup
+
+		pullbits = *(gpio.addr + pullreg);
+		//printf("col %d pullreg %d pullshift %x pull %d -- pullbits %x --> ", gpiox, pullreg, pullshift, pull, pullbits);
+		pullbits &= ~(3 << pullshift);
+		pullbits |= (pull << pullshift);
+		*(gpio.addr + pullreg) = pullbits;
+		//printf("%x == %x --- %xl\r\n", pullbits, *(&gpio.addr_p + pullreg), gpio.addr_p + pullreg);
+	}
+	// GPIO row pins
+	for (i=0;i<3;i++)
+	{
+		gpiox = rows[i];
+		pullreg = GPPUPPDN0 + (gpiox>>4);
+		pullshift = (gpiox & 0xf) << 1;
+		pull = 0;	// pullup
+
+		pullbits = *(gpio.addr + pullreg);
+		pullbits &= ~(3 << pullshift);
+		pullbits |= (pull << pullshift);
+		*(gpio.addr + pullreg) = pullbits;
+	}
+	// GPIO ledrow pins
+	for (i=0;i<6;i++)
+	{
+		gpiox = ledrows[i];
+		pullreg = GPPUPPDN0 + (gpiox>>4);
+		pullshift = (gpiox & 0xf) << 1;
+		pull = 0;	// pullup
+
+		pullbits = *(gpio.addr + pullreg);
+		pullbits &= ~(3 << pullshift);
+		pullbits |= (pull << pullshift);
+		*(gpio.addr + pullreg) = pullbits;
+	}
+}
+else 	// configure pullups for older Pis
+{
 	// BCM2835 ARM Peripherals PDF p 101 & elinux.org/RPi_Low-level_peripherals#Internal_Pull-Ups_.26_Pull-Downs
 	GPIO_PULL = 2; // pull-up
 	short_wait(); // must wait 150 cycles
@@ -187,6 +253,7 @@ void *blink(int *terminate)
 	short_wait();
 	GPIO_PULLCLK0 = 0; // remove clock
 	short_wait(); // probably unnecessary
+}
 	// --------------------------------------------------
 
 	// printf("\nPiDP-11 FP on\n");
@@ -286,10 +353,16 @@ void short_wait(void) // creates pause required in between clocked GPIO settings
 	usleep(1); // suggested as alternative for asm which c99 does not accept
 }
 
-unsigned bcm_host_get_peripheral_address(void) // find Pi 2 or Pi's gpio base address
+unsigned bcm_host_get_peripheral_address(void) // find Pi's gpio base address
 {
-	unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
-	return address == ~0 ? 0x20000000 : address;
+//	unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
+//	return address == ~0 ? 0x20000000 : address;
+// Pi 4 fix: https://github.com/raspberrypi/userland/blob/master/host_applications/linux/libs/bcm_host/bcm_host.c
+   unsigned address = get_dt_ranges("/proc/device-tree/soc/ranges", 4);
+   if (address == 0)
+      address = get_dt_ranges("/proc/device-tree/soc/ranges", 8);
+   return address == ~0 ? 0x20000000 : address;
+
 }
 static unsigned get_dt_ranges(const char *filename, unsigned offset)
 {

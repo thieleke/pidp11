@@ -28,6 +28,7 @@
 #ifndef HISTORYBUFFER_H_
 #define HISTORYBUFFER_H_
 
+
 #include <stdint.h>
 #include <stdio.h>
 #ifndef WIN32
