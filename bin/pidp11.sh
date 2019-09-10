@@ -45,9 +45,9 @@ while
 	) >/run/pidp11/tmpsimhcommand.txt
         echo "/opt/pidp11/systems/$sel" > /run/pidp11/cwd
 	echo "*** Start client/server ***"
-	sudo ./server11 &
+	sudo /opt/pidp11/bin/server11 &
 	sleep 2
-	sudo ./client11 /run/pidp11/tmpsimhcommand.txt
+	sudo /opt/pidp11/bin/client11 /run/pidp11/tmpsimhcommand.txt
 
 	# after simh exits, check if a newly created command file now says exit (meaning pls reboot)
 	if [[ $(< /run/pidp11/tmpsimhcommand.txt) == "exit" ]]; then
