@@ -29,7 +29,7 @@ while
 		lo=$1
 	else
 		# get SR switches from scansw
-		sw=`sudo ./scansw`
+		sw=`sudo /opt/pidp11/bin/scansw`
 		# get low 18 bits and high 4 bits
 		#hi=`expr $sw / 262144`
 		lo=`expr $sw % 262144`
