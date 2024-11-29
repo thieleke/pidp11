@@ -78,7 +78,8 @@ NETWORK_OPT += -Islirp -Islirp_glue -Islirp_glue/qemu -DHAVE_SLIRP_NETWORK -DUSE
 
 CC_DEFS =
 OS_CCDEFS = -D_GNU_SOURCE
-CC_DBG_FLAGS = -O2 -Wno-unused-result
+#CC_DBG_FLAGS = -O2 -Wno-unused-result
+CC_DBG_FLAGS = -O3 -mtune=cortex-a72 -funsafe-math-optimizations -Wno-unused-result -mcpu=cortex-a72
 LDFLAGS = -lrt -lm  -lpthread -ldl -lreadline -ltirpc -ldbus-1
 CC = gcc -std=c99 -U__STRICT_ANSI__  $(CC_DEFS) $(OS_CCDEFS) -I $(SRC) $(CC_DBG_FLAGS) -UUSE_REALCONS -I/usr/include/tirpc
 CC_OUTSPEC = -o $@

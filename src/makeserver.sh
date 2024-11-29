@@ -15,7 +15,7 @@ export MAKE_CONFIGURATION=RELEASE
 
 (
 # the Blinkenlight API server for PiDP11
-cd /opt/pidp11/src/11_pidp_server/scanswitch
+cd 11_pidp_server/scanswitch
 make
 cd ../pidp11
 echo ; echo "*** blinkenlight_server for PiDP11"
