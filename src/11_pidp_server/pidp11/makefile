@@ -24,10 +24,10 @@ ifeq ($(MAKE_TARGET_ARCH),BEAGLEBONE)
 	LDFLAGS += -lrt
 else
 ifeq ($(MAKE_TARGET_ARCH),RPI)
-	CC=arm-linux-gnueabihf-gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
+	CC=gcc -std=c99 -U__STRICT_ANSI__ $(CC_DBG_FLAGS) $(OS_CCDEFS) -I.
 	OBJDIR=bin-rpi
 	SSHTARGET=pi@raspberrypi
-	LDFLAGS += -lrt
+	LDFLAGS += -lrt -ltirpc
 endif
 
 endif
@@ -41,6 +41,7 @@ CCDEFS= \
 	-I$(BLINKENLIGHT_API_DIR)	\
 	-I$(BLINKENLIGHT_API_DIR)/rpcgen_linux	\
 	-I$(BLINKENLIGHT_SERVER_DIR)	\
+	-I/usr/include/tirpc	\
 	$(CC_DBG_FLAGS) $(OS_CCDEFS)
 
 
@@ -82,14 +83,18 @@ SOURCES.h = \
 	gpio.h	\
 	gpiopattern.h	\
 	$(BLINKENLIGHT_SERVER_DIR)/print.h	\
-	$(BLINKENLIGHT_API_DIR)/blinkenlight_panels.h
+	$(BLINKENLIGHT_API_DIR)/blinkenlight_panels.h	\
+	pinctrl/gpiochip.h	pinctrl/gpiolib.h pinctrl/util.h
 
 SOURCES.c = \
 	main.c	\
 	gpio.c	\
 	gpiopattern.c	\
 	$(BLINKENLIGHT_SERVER_DIR)/print.c	\
-	$(BLINKENLIGHT_API_SOURCES.c)
+	$(BLINKENLIGHT_API_SOURCES.c)	\
+	pinctrl/gpiochip_bcm2712.c  pinctrl/gpiochip_rp1.c  pinctrl/util.c \
+	pinctrl/gpiochip_bcm2835.c  pinctrl/gpiolib.c       pinctrl/pinctrl.c
+
 
 
 OBJECTS = $(SOURCES.c:%.c=%.o)

@@ -858,7 +858,7 @@ if (!(dptr->flags & DEV_DIS))       /* Enabling? */
 
 t_stat mba_show_num (FILE *st, UNIT *uptr, int32 val, CONST void *desc)
 {
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 DIB *dibp;
 
 if (dptr == NULL)

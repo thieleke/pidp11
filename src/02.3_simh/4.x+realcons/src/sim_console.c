@@ -176,6 +176,7 @@ int32 sim_del_char = '\b';                              /* delete character */
 int32 sim_del_char = 0177;
 #endif
 extern TMLN *sim_oline;                                 /* global output socket */
+char key_char;
 
 static t_stat sim_con_poll_svc (UNIT *uptr);                /* console connection poll routine */
 static t_stat sim_con_reset (DEVICE *dptr);                 /* console reset routine */
@@ -3005,14 +3006,14 @@ while (sim_asynch_enabled) {
         if (!sim_con_ldsc.uptr->a_polling_now) {
             sim_con_ldsc.uptr->a_polling_now = TRUE;
             sim_con_ldsc.uptr->a_poll_waiter_count = 1;
-            d = find_dev_from_unit(sim_con_ldsc.uptr);
+            d = find_device_from_unit(sim_con_ldsc.uptr);
             sim_debug (DBG_ASY, &sim_con_telnet, "_console_poll() - Activating %s\n", d->name);
             pthread_mutex_unlock (&sim_tmxr_poll_lock);
             _sim_activate (sim_con_ldsc.uptr, 0);
             pthread_mutex_lock (&sim_tmxr_poll_lock);
             }
         else {
-            d = find_dev_from_unit(sim_con_ldsc.uptr);
+            d = find_device_from_unit(sim_con_ldsc.uptr);
             sim_debug (DBG_ASY, &sim_con_telnet, "_console_poll() - Already Activated %s %d times\n", d->name, sim_con_ldsc.uptr->a_poll_waiter_count);
             ++sim_con_ldsc.uptr->a_poll_waiter_count;
             }
@@ -3955,6 +3956,18 @@ runtty.c_cc[VDSUSP] = 0;
 runtty.c_cc[VSTATUS] = 0;
 #endif
 return SCPE_OK;
+}
+
+/* Inject string into console input stream see stddev.c*/
+
+void write_console_input(unsigned char *str, int length)
+{
+	while (*str) {
+		if (*str == 8)
+			*str=0377;			/* ^H to RO */
+        key_char=*str++;      /* Set by UI Keypress */
+		//ioctl(0, TIOCSTI, str++);
+	}
 }
 
 static t_stat sim_os_ttrun (void)

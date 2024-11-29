@@ -586,7 +586,7 @@ extern int32 FPS;
 bflag = 0;                                              /* assume 16b */
 cflag = (uptr == NULL) || (uptr == &cpu_unit);          /* cpu? */
 if (!cflag) {                                           /* not cpu? */
-    DEVICE *dptr = find_dev_from_unit (uptr);
+    DEVICE *dptr = find_device_from_unit (uptr);
     if (dptr == NULL)
         return SCPE_IERR;
     if (dptr->dwidth < 16)
@@ -946,7 +946,7 @@ char *tptr, gbuf[CBUFSIZE];
 bflag = 0;                                              /* assume 16b */
 cflag = (uptr == NULL) || (uptr == &cpu_unit);          /* cpu? */
 if (!cflag) {                                           /* not cpu? */
-    DEVICE *dptr = find_dev_from_unit (uptr);
+    DEVICE *dptr = find_device_from_unit (uptr);
     if (dptr == NULL)
         return SCPE_IERR;
     if (dptr->dwidth < 16)

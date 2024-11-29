@@ -192,7 +192,7 @@
    05-Feb-01    RMS     Fixed bug, DETACH buffered unit with hwmark = 0
    04-Feb-01    RMS     Fixed bug, RESTORE not using device's attach routine
    21-Jan-01    RMS     Added relative time
-   22-Dec-00    RMS     Fixed find_device for devices ending in numbers
+   22-Dec-00    RMS     Fixed find_deviceice for devices ending in numbers
    08-Dec-00    RMS     V2.5a changes
    30-Oct-00    RMS     Added output file option to examine
    11-Jul-99    RMS     V2.5 changes
@@ -2991,7 +2991,7 @@ if (*cptr) {
                 cptr = get_glyph (cptr, gbuf, 0);
                 dptr = find_unit (gbuf, &uptr);
                 if (dptr == NULL)
-                    dptr = find_dev (gbuf);
+                    dptr = find_device (gbuf);
                 if (dptr != NULL) {
                     r = help_dev_help (stdout, dptr, uptr, flag, (cmdp->action == &set_cmd) ? "SET" : "SHOW");
                     if (sim_log)
@@ -3075,7 +3075,7 @@ if (*cptr) {
 
         dptr = find_unit (gbuf, &uptr);
         if (dptr == NULL) {
-            dptr = find_dev (gbuf);
+            dptr = find_device (gbuf);
             if (dptr == NULL)
                 return SCPE_ARG;
             if (dptr->flags & DEV_DISABLE)
@@ -4596,7 +4596,7 @@ if (*cptr == 0)                                         /* must be more */
     return SCPE_2FARG;
 cptr = get_glyph (svptr = cptr, gbuf, 0);               /* get glob/dev/unit */
 
-if ((dptr = find_dev (gbuf))) {                         /* device match? */
+if ((dptr = find_device (gbuf))) {                         /* device match? */
     uptr = dptr->units;                                 /* first unit */
     ctbr = set_dev_tab;                                 /* global table */
     lvl = MTAB_VDV;                                     /* device match */
@@ -4862,7 +4862,7 @@ if (*cptr == 0)                                         /* must be more */
     return SCPE_2FARG;
 cptr = get_glyph (svptr = cptr, gbuf, 0);               /* get next glyph */
 
-if ((dptr = find_dev (gbuf))) {                         /* device match? */
+if ((dptr = find_device (gbuf))) {                         /* device match? */
     uptr = dptr->units;                                 /* first unit */
     shtb = show_dev_tab;                                /* global table */
     lvl = MTAB_VDV;                                     /* device match */
@@ -5358,7 +5358,7 @@ else {
             if (uptr == &sim_expect_unit)
                 fprintf (st, "  Expect fired");
             else
-                if ((dptr = find_dev_from_unit (uptr)) != NULL) {
+                if ((dptr = find_device_from_unit (uptr)) != NULL) {
                     fprintf (st, "  %s", sim_dname (dptr));
                     if (dptr->numunits > 1)
                         fprintf (st, " unit %d", (int32) (uptr - dptr->units));
@@ -5386,7 +5386,7 @@ if (sim_asynch_queue == QUEUE_LIST_END)
     fprintf (st, "  Empty\n");
 else {
     for (uptr = sim_asynch_queue; uptr != QUEUE_LIST_END; uptr = uptr->a_next) {
-        if ((dptr = find_dev_from_unit (uptr)) != NULL) {
+        if ((dptr = find_device_from_unit (uptr)) != NULL) {
             fprintf (st, "  %s", sim_dname (dptr));
             if (dptr->numunits > 1) fprintf (st, " unit %d",
                 (int32) (uptr - dptr->units));
@@ -6017,7 +6017,7 @@ DEVICE *dptr;
 
 GET_SWITCHES (cptr);                                    /* get switches */
 cptr = get_glyph (svptr = cptr, gbuf, 0);               /* get next glyph */
-if ((dptr = find_dev (gbuf)))                           /* device match? */
+if ((dptr = find_device (gbuf)))                           /* device match? */
 return set_dev_debug (dptr, NULL, flg, *cptr ? cptr : NULL);
 cptr = svptr;
 if (flg)
@@ -6147,7 +6147,7 @@ if (*cptr != 0)                                         /* now eol? */
     return SCPE_2MARG;
 if (strcmp (gbuf, "ALL") == 0)
     return (reset_all (0));
-dptr = find_dev (gbuf);                                 /* locate device */
+dptr = find_device (gbuf);                                 /* locate device */
 if (dptr == NULL)                                       /* found it? */
     return SCPE_NXDEV;
 if (dptr->reset != NULL)
@@ -6328,7 +6328,7 @@ DEVICE *dptr;
 
 if (!(uptr->flags & UNIT_ATTABLE))                      /* not attachable? */
     return SCPE_NOATT;
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_NOATT;
 uptr->filename = (char *) calloc (CBUFSIZE, sizeof (char)); /* alloc name buf */
 if (uptr->filename == NULL)
@@ -6496,7 +6496,7 @@ if (!(uptr->flags & UNIT_ATT)) {                        /* not attached? */
     else
         return SCPE_NOTATT;                             /* complain */
     }
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_OK;
 if ((uptr->flags & UNIT_BUF) && (uptr->filebuf)) {
     uint32 cap = (uptr->hwmark + dptr->aincr - 1) / dptr->aincr;
@@ -6538,13 +6538,13 @@ cptr = get_glyph (cptr, gbuf, 0);                       /* get next glyph */
 GET_SWITCHES (cptr);                                    /* get switches */
 if (*cptr == 0)                                         /* now eol? */
     return SCPE_2FARG;
-dptr = find_dev (gbuf);                                 /* locate device */
+dptr = find_device (gbuf);                                 /* locate device */
 if (dptr == NULL)                                       /* found dev? */
     return SCPE_NXDEV;
 cptr = get_glyph (cptr, gbuf, 0);                       /* get next glyph */
 if (*cptr != 0)                                         /* must be eol */
     return SCPE_2MARG;
-if (find_dev (gbuf))                                    /* name in use */
+if (find_device (gbuf))                                    /* name in use */
     return SCPE_ARG;
 deassign_device (dptr);                                 /* release current */
 return assign_device (dptr, gbuf);
@@ -6575,7 +6575,7 @@ if (*cptr == 0)                                         /* must be more */
 cptr = get_glyph (cptr, gbuf, 0);                       /* get next glyph */
 if (*cptr != 0)                                         /* now eol? */
     return SCPE_2MARG;
-dptr = find_dev (gbuf);                                 /* locate device */
+dptr = find_device (gbuf);                                 /* locate device */
 if (dptr == NULL)                                       /* found dev? */
     return SCPE_NXDEV;
 return deassign_device (dptr);
@@ -6604,7 +6604,7 @@ char uname[CBUFSIZE];
 
 if (uptr->uname)
     return uptr->uname;
-d = find_dev_from_unit(uptr);
+d = find_device_from_unit(uptr);
 if (!d)
     return "";
 if (d->numunits == 1)
@@ -6913,7 +6913,7 @@ for ( ;; ) {                                            /* device loop */
     READ_S (buf);                                       /* read device name */
     if (buf[0] == 0)                                    /* last? */
         break;
-    if ((dptr = find_dev (buf)) == NULL) {              /* locate device */
+    if ((dptr = find_device (buf)) == NULL) {              /* locate device */
         sim_printf ("Invalid device name: %s\n", buf);
         r = SCPE_INCOMP;
         goto Cleanup_Return;
@@ -7090,7 +7090,7 @@ for (j=0, r = SCPE_OK; j<attcnt; j++) {
         struct stat fstat;
         t_addr saved_pos;
 
-        dptr = find_dev_from_unit (attunits[j]);
+        dptr = find_device_from_unit (attunits[j]);
         if ((!force_restore) &&
             (!stat(attnames[j], &fstat)))
             if (fstat.st_mtime > rstat.st_mtime + 30) {
@@ -7402,12 +7402,12 @@ do {
     if (sim_step)                                       /* set step timer */
         sim_activate (&sim_step_unit, sim_step);
     } while (1);
-
+sim_is_running = FALSE;                                 /* flag idle */
 if ((SCPE_BARE_STATUS(r) == SCPE_STOP) &&               /* WRU exit from sim_instr() */
     (sim_on_actions[sim_do_depth][SCPE_STOP] == NULL) &&/* without a handler for a STOP condition */
     (sim_on_actions[sim_do_depth][0] == NULL))
     sim_os_ms_sleep (sim_stop_sleep_ms);                /* wait a bit for SIGINT */
-sim_is_running = FALSE;                                 /* flag idle */
+
 sim_stop_timer_services ();                             /* disable wall clock timing */
 sim_ttcmd ();                                           /* restore console */
 sim_brk_clrall (BRK_TYP_DYN_STEPOVER);                  /* cancel any step/over subroutine breakpoints */
@@ -9166,7 +9166,7 @@ free (string);
         result  =       pointer to device
 */
 
-DEVICE *find_dev (const char *cptr)
+DEVICE *find_device (const char *cptr)
 {
 int32 i;
 DEVICE *dptr;
@@ -9210,7 +9210,7 @@ DEVICE *dptr;
 if (uptr == NULL)                                       /* arg error? */
     return NULL;
 *uptr = NULL;
-if ((dptr = find_dev (cptr))) {                         /* exact match? */
+if ((dptr = find_device (cptr))) {                         /* exact match? */
     if (qdisable (dptr))                                /* disabled? */
         return NULL;
     *uptr = dptr->units;                                /* unit 0 */
@@ -9269,7 +9269,7 @@ return SCPE_OK;
         result  =       pointer to device
 */
 
-DEVICE *find_dev_from_unit (UNIT *uptr)
+DEVICE *find_device_from_unit (UNIT *uptr)
 {
 DEVICE *dptr;
 uint32 i, j;

@@ -101,6 +101,9 @@ t_stat vt_show_hspace(FILE *st, UNIT *uptr, int32 val, CONST void *desc);
 t_stat vt_set_vspace(UNIT *uptr, int32 val, CONST char *cptr, void *desc);
 t_stat vt_show_vspace(FILE *st, UNIT *uptr, int32 val, CONST void *desc);
 t_stat vt_help (FILE *st, DEVICE *dptr, UNIT *uptr, int32 flag, const char *cptr);
+t_stat vt_set_alias(UNIT *uptr, int32 val, CONST char *cptr, void *desc);
+t_stat vt_show_alias(FILE *st, UNIT *uptr, int32 val, CONST void *desc);
+
 const char *vt_description (DEVICE *dptr);
 
 /* VT11/VS60 data structures
@@ -136,6 +139,8 @@ MTAB vt_mod[] = {
                 &vt_set_hspace, &vt_show_hspace, NULL, "Horizontal Spacing" },
     { MTAB_XTD|MTAB_VDV|MTAB_VALR,   0, "VSPACE",  "VSPACE={TALL|NORMAL}",
                 &vt_set_vspace, &vt_show_vspace, NULL, "Vertical Spacing" },
+    { MTAB_XTD|MTAB_VDV|MTAB_VALR,   0, "ALIASING",  "ALIAS={ON|OFF}",
+                &vt_set_alias, &vt_show_alias, NULL, "Antialising" },
     { MTAB_XTD|MTAB_VDV|MTAB_VALR, 020, "ADDRESS", "ADDRESS",
                 &set_addr,      &show_addr,      NULL, "Bus address" },
     { MTAB_XTD|MTAB_VDV|MTAB_VALR,   0, "VECTOR",  "VECTOR",
@@ -480,6 +485,31 @@ vt_show_scale(FILE *st, UNIT *uptr, int32 val, CONST void *desc)
     fprintf(st, "scale=%d", (int)vt11_scale);
     return SCPE_OK;
 }
+
+t_stat
+vt_show_alias(FILE *st, UNIT *uptr, int32 val, CONST void *desc)
+{
+    fprintf(st, "antialiasing=%s", vt11_alias ? "on" : "off");
+    return SCPE_OK;
+}
+
+
+t_stat
+vt_set_alias(UNIT *uptr, int32 val, CONST char *cptr, void *desc)
+{
+    char gbuf[CBUFSIZE];
+    if (cptr == NULL)
+        return SCPE_ARG;
+    get_glyph(cptr, gbuf, 0);
+    if (strcmp(gbuf, "ON") == 0)
+        vt11_alias = 1;
+    else if (strcmp(gbuf, "OFF") == 0)
+        vt11_alias = 0;
+   else
+        return SCPE_ARG;
+    return SCPE_OK;
+}
+
 
 t_stat
 vt_set_hspace(UNIT *uptr, int32 val, CONST char *cptr, void *desc)
@@ -530,6 +560,7 @@ vt_show_vspace(FILE *st, UNIT *uptr, int32 val, CONST void *desc)
     fprintf(st, "vspace=%s", vt11_csp_h==26 ? "tall" : "normal");
     return SCPE_OK;
 }
+
 
 /* interface routines (called from display simulator) */
 

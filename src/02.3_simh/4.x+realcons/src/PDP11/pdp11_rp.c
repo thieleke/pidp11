@@ -1111,7 +1111,7 @@ return rp_reset (&rp_dev);
 
 void rp_io_complete (UNIT *uptr, t_stat status)
 {
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 sim_debug(DBG_TRC, dptr, "rp_io_complete(rp%d, status=%d)\n", (int)(uptr - dptr->units), status);
 uptr->io_status = status;
@@ -1131,7 +1131,7 @@ t_stat rp_svc (UNIT *uptr)
 {
 int32 i, fnc, dtype, drv, err;
 int32 wc, abc, awc, mbc, da;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 DIB *dibp = (DIB *) dptr->ctxt;
 
 dtype = GET_DTYPE (uptr->flags);                        /* get drive type */
@@ -1377,7 +1377,7 @@ t_stat rp_attach (UNIT *uptr, CONST char *cptr)
 {
 int32 drv, i, p;
 t_stat r;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 uptr->capac = drv_tab[GET_DTYPE (uptr->flags)].size;
 r = sim_disk_attach (uptr, cptr, RP_NUMWD * sizeof (uint16), 
@@ -1409,7 +1409,7 @@ return SCPE_OK;
 t_stat rp_detach (UNIT *uptr)
 {
 int32 drv;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if (!(uptr->flags & UNIT_ATT))                          /* attached? */
     return SCPE_OK;

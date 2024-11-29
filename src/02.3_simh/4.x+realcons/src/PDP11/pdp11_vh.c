@@ -1387,7 +1387,7 @@ static t_stat vh_svc (  UNIT    *uptr   )
 {
     int32   vh, newln, i;
 
-    sim_debug(DBG_TRC, find_dev_from_unit(uptr), "vh_svc()\n");
+    sim_debug(DBG_TRC, find_device_from_unit(uptr), "vh_svc()\n");
 
     /* sample every 10ms for modem changes (new connections) */
     newln = tmxr_poll_conn (&vh_desc);

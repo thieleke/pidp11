@@ -1199,7 +1199,7 @@ if (sim_asynch_timer) {
     else {
         fprintf (st, "%s wall clock event queue status\n", sim_name);
         for (uptr = sim_wallclock_queue; uptr != QUEUE_LIST_END; uptr = uptr->a_next) {
-            if ((dptr = find_dev_from_unit (uptr)) != NULL) {
+            if ((dptr = find_device_from_unit (uptr)) != NULL) {
                 fprintf (st, "  %s", sim_dname (dptr));
                 if (dptr->numunits > 1)
                     fprintf (st, " unit %d", (int32) (uptr - dptr->units));
@@ -1224,7 +1224,7 @@ for (tmr=0; tmr<=SIM_NTIMERS; ++tmr) {
                  sim_name, sim_uname(sim_clock_unit[tmr]));
         accum = 0;
         for (uptr = sim_clock_cosched_queue[tmr]; uptr != QUEUE_LIST_END; uptr = uptr->next) {
-            if ((dptr = find_dev_from_unit (uptr)) != NULL) {
+            if ((dptr = find_device_from_unit (uptr)) != NULL) {
                 fprintf (st, "  %s", sim_dname (dptr));
                 if (dptr->numunits > 1)
                     fprintf (st, " unit %d", (int32) (uptr - dptr->units));

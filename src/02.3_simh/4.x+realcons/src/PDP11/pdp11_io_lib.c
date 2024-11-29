@@ -95,7 +95,7 @@ if (cptr == NULL)
     return SCPE_ARG;
 if ((val == 0) || (uptr == NULL))
     return SCPE_IERR;
-dptr = find_dev_from_unit (uptr);
+dptr = find_device_from_unit (uptr);
 if (dptr == NULL)
     return SCPE_IERR;
 dibp = (DIB *) dptr->ctxt;
@@ -122,7 +122,7 @@ uint32 radix = DEV_RDX;
 
 if (uptr == NULL)
     return SCPE_IERR;
-dptr = find_dev_from_unit (uptr);
+dptr = find_device_from_unit (uptr);
 if (dptr == NULL)
     return SCPE_IERR;
 dibp = (DIB *) dptr->ctxt;
@@ -163,7 +163,7 @@ if (cptr != NULL)
     return SCPE_ARG;
 if (uptr == NULL)
     return SCPE_IERR;
-dptr = find_dev_from_unit (uptr);
+dptr = find_device_from_unit (uptr);
 if (dptr == NULL)
     return SCPE_IERR;
 return auto_config (NULL, 0);                           /* autoconfigure */
@@ -190,7 +190,7 @@ if (cptr == NULL)
     return SCPE_ARG;
 if (uptr == NULL)
     return SCPE_IERR;
-dptr = find_dev_from_unit (uptr);
+dptr = find_device_from_unit (uptr);
 if (dptr == NULL)
     return SCPE_IERR;
 dibp = (DIB *) dptr->ctxt;
@@ -216,7 +216,7 @@ uint32 vec, numvec, br_lvl, radix = DEV_RDX;
 
 if (uptr == NULL)
     return SCPE_IERR;
-dptr = find_dev_from_unit (uptr);
+dptr = find_device_from_unit (uptr);
 if (dptr == NULL)
     return SCPE_IERR;
 dibp = (DIB *) dptr->ctxt;
@@ -846,7 +846,7 @@ uint32 j, k, jena, vmask, amask;
 if (autcon_enb == 0)                                    /* enabled? */
     return SCPE_OK;
 if (name) {                                             /* updating? */
-    dptr = find_dev (name);
+    dptr = find_device (name);
     if (dptr == NULL)
         return SCPE_ARG;
     dibp = (DIB *) dptr->ctxt;                          /* get DIB */
@@ -862,7 +862,7 @@ for (autp = auto_tab; autp->valid >= 0; autp++) {       /* loop thru table */
     for (j = 0; (j < AUTO_MAXC) && autp->dnam[j]; j++) {
         if (autp->dnam[j] == NULL)                      /* no device? */
             break;
-        dptr = find_dev (autp->dnam[j]);                /* find ctrl */
+        dptr = find_device (autp->dnam[j]);                /* find ctrl */
         if ((dptr == NULL) ||                           /* enabled, not (nexus or unibus or qbus)? */
             (dptr->flags & DEV_DIS) ||
             (dptr->flags & DEV_NEXUS) ||
@@ -886,7 +886,7 @@ for (autp = auto_tab; autp->valid >= 0; autp++) {       /* loop thru table */
         /* Identify how many devices earlier in the device list are 
            enabled and use that info to determine fixed address assignments */
         for (k=jena=0; k<j; k++) {
-            DEVICE *kdptr = find_dev (autp->dnam[k]);
+            DEVICE *kdptr = find_device (autp->dnam[k]);
             
             if (kdptr && (!(kdptr->flags & DEV_DIS)))
                 jena += ((DIB *)kdptr->ctxt)->numc ? ((DIB *)kdptr->ctxt)->numc : 1;

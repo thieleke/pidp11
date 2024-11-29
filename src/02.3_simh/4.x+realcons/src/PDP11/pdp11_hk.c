@@ -1066,7 +1066,7 @@ t_stat err;
 int32 wc, awc, da;
 uint32 drv, ba;
 uint16 comp;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 drv = (uint32) (uptr - hk_dev.units);                   /* get drv number */
 fnc = uptr->FNC & CS1_M_FNC;                            /* get function */

@@ -15,8 +15,8 @@ REALCONS_DIR=$(SRC)/REALCONS/
 DISPLAY=$(SRC)/display/
 
 BIN=$(SRC)/../bin-rpi/
-LIBPCAP=$(SRC)/../rpi-build/libpcap.a
-
+#LIBPCAP=$(SRC)/../rpi-build/libpcap.a
+LIBPCAP=-lpcap
 
 # sources ------------------------------------------------------------------------------
 
@@ -74,12 +74,13 @@ PDP11_OPT = -DVM_PDP11 -I ${PDP11D} ${NETWORK_OPT} $(DISPLAY_OPT) ${REALCONS_OPT
 
 NETWORK_OPT = -DUSE_NETWORK -isystem $(SYSROOTS)/usr/local/include $(LIBPCAP) -DHAVE_PCAP_NETWORK -DHAVE_TAP_NETWORK
 
+NETWORK_OPT += -Islirp -Islirp_glue -Islirp_glue/qemu -DHAVE_SLIRP_NETWORK -DUSE_SIMH_SLIRP_DEBUG slirp/*.c slirp_glue/*.c
 
 CC_DEFS =
 OS_CCDEFS = -D_GNU_SOURCE
 CC_DBG_FLAGS = -O2 -Wno-unused-result
-LDFLAGS = -lrt -lm  -lpthread -ldl -lreadline
-CC = gcc -std=c99 -U__STRICT_ANSI__  $(CC_DEFS) $(OS_CCDEFS) -I $(SRC) $(CC_DBG_FLAGS) -UUSE_REALCONS
+LDFLAGS = -lrt -lm  -lpthread -ldl -lreadline -ltirpc -ldbus-1
+CC = gcc -std=c99 -U__STRICT_ANSI__  $(CC_DEFS) $(OS_CCDEFS) -I $(SRC) $(CC_DBG_FLAGS) -UUSE_REALCONS -I/usr/include/tirpc
 CC_OUTSPEC = -o $@
 
 

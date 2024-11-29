@@ -769,7 +769,7 @@ static TMLN *tmxr_find_ldsc (UNIT *uptr, int32 val, const TMXR *mp)
 if (mp == NULL)                                         /* invalid multiplexer descriptor? */
     return NULL;                                        /* programming error! */
 if (uptr) {                                             /* called from SET? */
-    DEVICE *dptr = find_dev_from_unit (uptr);           /* find device */
+    DEVICE *dptr = find_device_from_unit (uptr);           /* find device */
     if (dptr == NULL)                                   /* what?? */
         return NULL;
     val = (int32) (uptr - dptr->units);                 /* implicit line # */
@@ -2500,7 +2500,7 @@ t_bool nolog, notelnet, listennotelnet, modem_control, loopback, datagram, packe
 TMLN *lp;
 t_stat r = SCPE_OK;
 
-snprintf (dev_name, sizeof(dev_name), "%s%s", mp->uptr ? sim_dname (find_dev_from_unit (mp->uptr)) : "", mp->uptr ? " " : "");
+snprintf (dev_name, sizeof(dev_name), "%s%s", mp->uptr ? sim_dname (find_device_from_unit (mp->uptr)) : "", mp->uptr ? " " : "");
 if (*tptr == '\0')
     return SCPE_ARG;
 for (i = 0; i < mp->lines; i++) {               /* initialize lines */
@@ -3122,7 +3122,7 @@ while (sim_asynch_enabled) {
 
     if ((tmxr_open_device_count == 0) || (!sim_is_running)) {
         for (j=0; j<wait_count; ++j) {
-            d = find_dev_from_unit(activated[j]);
+            d = find_device_from_unit(activated[j]);
             sim_debug (TMXR_DBG_ASY, d, "_tmxr_poll() - Removing interest in %s. Other interest: %d\n", sim_uname(activated[j]), activated[j]->a_poll_waiter_count);
             --activated[j]->a_poll_waiter_count;
             --sim_tmxr_poll_count;
@@ -3216,7 +3216,7 @@ while (sim_asynch_enabled) {
                     if (!mp->uptr->a_polling_now) {
                         mp->uptr->a_polling_now = TRUE;
                         mp->uptr->a_poll_waiter_count = 0;
-                        d = find_dev_from_unit(mp->uptr);
+                        d = find_device_from_unit(mp->uptr);
                         sim_debug (TMXR_DBG_ASY, d, "_tmxr_poll() - Activating %s to poll connect\n", sim_uname(mp->uptr));
                         pthread_mutex_unlock (&sim_tmxr_poll_lock);
                         _sim_activate (mp->uptr, 0);
@@ -3236,7 +3236,7 @@ while (sim_asynch_enabled) {
                             if (!mp->ldsc[j].uptr->a_polling_now) {
                                 mp->ldsc[j].uptr->a_polling_now = TRUE;
                                 mp->ldsc[j].uptr->a_poll_waiter_count = 0;
-                                d = find_dev_from_unit(mp->ldsc[j].uptr);
+                                d = find_device_from_unit(mp->ldsc[j].uptr);
                                 sim_debug (TMXR_DBG_ASY, d, "_tmxr_poll() - Line %d Activating %s to poll data: %d/%d\n", 
                                     j, sim_uname(mp->ldsc[j].uptr), tmxr_tqln(&mp->ldsc[j]), tmxr_rqln (&mp->ldsc[j]));
                                 pthread_mutex_unlock (&sim_tmxr_poll_lock);
@@ -3273,14 +3273,14 @@ while (sim_asynch_enabled) {
                         if (!activated[j]->a_polling_now) {
                             activated[j]->a_polling_now = TRUE;
                             activated[j]->a_poll_waiter_count = 1;
-                            d = find_dev_from_unit(activated[j]);
+                            d = find_device_from_unit(activated[j]);
                             sim_debug (TMXR_DBG_ASY, d, "_tmxr_poll() - Activating for data %s\n", sim_uname(activated[j]));
                             pthread_mutex_unlock (&sim_tmxr_poll_lock);
                             _sim_activate (activated[j], 0);
                             pthread_mutex_lock (&sim_tmxr_poll_lock);
                             }
                         else {
-                            d = find_dev_from_unit(activated[j]);
+                            d = find_device_from_unit(activated[j]);
                             sim_debug (TMXR_DBG_ASY, d, "_tmxr_poll() - Already Activated %s%d %d times\n", sim_uname(activated[j]), activated[j]->a_poll_waiter_count);
                             ++activated[j]->a_poll_waiter_count;
                             }
@@ -3336,7 +3336,7 @@ while (sim_asynch_enabled) {
 
     if ((tmxr_open_device_count == 0) || (!sim_is_running)) {
         for (j=0; j<wait_count; ++j) {
-            d = find_dev_from_unit(activated[j]);
+            d = find_device_from_unit(activated[j]);
             sim_debug (TMXR_DBG_ASY, d, "_tmxr_serial_poll() - Removing interest in %s. Other interest: %d\n", sim_uname(activated[j]), activated[j]->a_poll_waiter_count);
             --activated[j]->a_poll_waiter_count;
             --sim_tmxr_poll_count;
@@ -3387,14 +3387,14 @@ while (sim_asynch_enabled) {
             if (!activated[j]->a_polling_now) {
                 activated[j]->a_polling_now = TRUE;
                 activated[j]->a_poll_waiter_count = 1;
-                d = find_dev_from_unit(activated[j]);
+                d = find_device_from_unit(activated[j]);
                 sim_debug (TMXR_DBG_ASY, d, "_tmxr_serial_poll() - Activating for data %s\n", sim_uname(activated[j]));
                 pthread_mutex_unlock (&sim_tmxr_poll_lock);
                 _sim_activate (activated[j], 0);
                 pthread_mutex_lock (&sim_tmxr_poll_lock);
                 }
             else {
-                d = find_dev_from_unit(activated[j]);
+                d = find_device_from_unit(activated[j]);
                 sim_debug (TMXR_DBG_ASY, d, "_tmxr_serial_poll() - Already Activated %s%d %d times\n", sim_uname(activated[j]), activated[j]->a_poll_waiter_count);
                 ++activated[j]->a_poll_waiter_count;
                 }
@@ -3441,7 +3441,7 @@ _tmxr_serial_line_poll(void *arg)
 TMLN *lp = (TMLN *)arg;
 DEVICE *dptr = tmxr_open_devices[0]->dptr;
 UNIT *uptr = (lp->uptr ? lp->uptr : lp->mp->uptr);
-DEVICE *d = find_dev_from_unit(uptr);
+DEVICE *d = find_device_from_unit(uptr);
 int wait_count = 0;
 
 /* Boost Priority for this I/O thread vs the CPU instruction execution 
@@ -3688,7 +3688,7 @@ if (snd)
 if (exp)
     *exp = NULL;
 cptr = get_glyph(cptr, gbuf, ':');
-dptr = find_dev (gbuf);                 /* device match? */
+dptr = find_device (gbuf);                 /* device match? */
 if (!dptr)
     return SCPE_ARG;
 
@@ -3771,7 +3771,7 @@ t_stat r;
 int32 i;
 
 if (mp->dptr == NULL)                                   /* has device been set? */
-    mp->dptr = find_dev_from_unit (uptr);               /* no, so set device now */
+    mp->dptr = find_device_from_unit (uptr);               /* no, so set device now */
 
 mp->uptr = uptr;                                        /* save unit for polling */
 r = tmxr_open_master (mp, cptr);                        /* open master socket */

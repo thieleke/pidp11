@@ -46,7 +46,7 @@ uint32 vid_mono_palette[2];                         /* Monochrome Color Map */
 double *colmap;										/* Parameter used by Refresh and vid_setpixel in sim_video.c */
 int32 pxval;										/* Also referenced in display.c */
 int nostore=0;							            /* Enables storage display. Always defined. */
-
+int alias;                                          /* Aliasing active flag. Required to set correct pixel intensity */
 
 char vid_release_key[64] = "Ctrl-Right-Shift";
 
@@ -60,7 +60,7 @@ char vid_release_key[64] = "Ctrl-Right-Shift";
 #define EVENT_BEEP      10                              /* audio beep */
 
 
-static int iwd,iht,told,tnew,tvl;
+static int iwd,iht,told,tnew,tvl,dflag;
 static const int MAXFONTPATH = 500;
 static int init_x = 0;		// Initial window position and size
 static int init_y = 0;
@@ -90,7 +90,10 @@ static void vid_beep_event (void);
 static SDL_Window *window = 0;                    // Declare some pointers
 static SDL_Surface *surface = 0;
 static SDL_Cursor *cursor = 0;
-
+Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+SDL_Texture *tex;
+	// creates a renderer to render our images
+SDL_Renderer* rend;
 int32 vid_flags;                                        /* Open Flags */
 
 t_stat vid_set_release_key (FILE* st, UNIT* uptr, int32 val, CONST void* desc)
@@ -357,7 +360,7 @@ int main (int argc, char *argv[])
     while (!MLoop())
         SDL_Delay(1);								// Transiently de-schedule this thread.
 
-    SDL_WaitThread (vid_main_thread_handle, &status);
+    // SDL_WaitThread (vid_main_thread_handle, &status);
     vid_close();
     SDL_Quit();
     return status;
@@ -430,7 +433,8 @@ t_stat vid_open (DEVICE *dptr, const char *title, uint32 width, uint32 height, i
     xhev=(struct mouse_event *)calloc(1,sizeof(SIM_MOUSE_EVENT));
     xkev=(struct key_event *)calloc(1,sizeof(SIM_KEY_EVENT));
 
-    vid_init = WINDOW_OK;										    // Flag such that MLoop can call vid_create_window 
+    vid_init = WINDOW_OK;
+    alias = 0;				/* Anti-aliasing off */										    // Flag such that MLoop can call vid_create_window 
     return 0;
 }
 
@@ -450,6 +454,7 @@ t_stat vid_create_window(void)
 	//printf("WIN:%d\r\n",vt11_window);
 	//vt11_window=WIN_NORM;
     SDL_Init (SDL_INIT_VIDEO);
+    SDL_SetHint(SDL_HINT_RENDER_VSYNC,"1");
     window = SDL_CreateWindow(
         vid_title,							// window title
         SDL_WINDOWPOS_UNDEFINED,					// initial x position
@@ -465,7 +470,8 @@ t_stat vid_create_window(void)
         printf("Could not create SDL window: %s\n", SDL_GetError());
         exit(-1);
     }
-    surface = SDL_GetWindowSurface(window);
+    
+    surface = SDL_CreateRGBSurfaceWithFormat(0, init_w, init_h, 32, SDL_PIXELFORMAT_RGB888);
     /* Check the bitdepth of the surface */
     if(surface->format->BitsPerPixel != 32){
         fprintf(stderr, "Not an 32-bit SDL surface.\n");
@@ -476,17 +482,25 @@ t_stat vid_create_window(void)
         fprintf(stderr, "Invalid pixel format.\n");
         exit(-1);
     }
+    
+    rend = SDL_GetRenderer(window);
+    if (rend)
+        SDL_DestroyRenderer(rend);
+    rend=SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!rend)
+        printf("%s\r\n",SDL_GetError());
+    tex = SDL_CreateTextureFromSurface(rend, surface);
+    if (!tex)
+        printf("%s\r\n",SDL_GetError());
 
     pixels = (unsigned char *)surface->pixels;
     surlen = (init_h * surface->pitch);
-    SDL_UpdateWindowSurface(window);
-    SDL_CreateThread(Refresh,"Refresh",(void *)NULL);
     if (!(init_flags & SIM_VID_INPUTCAPTURED))
         if (!(init_flags & SIM_OWN_CURSOR))
              SDL_ShowCursor(SDL_DISABLE);			        /* Make host OS cursor invisible in non-capture mode or */
                                                             /* for all other system that use their own cursor (see sim_ws.c:vid_open) */
     vid_init = RUNNING;									    /* Init OK continue to next state */
-
+    dflag = 0;
     return SCPE_OK;
 }
 
@@ -665,26 +679,16 @@ static int Refresh(void *info) {
     int i,j;
     unsigned char *p;
     double *d;
-
-    while (window && vid_init != STOPPED) {
-        told=sim_os_msec();
+    
+    if (window && vid_init != STOPPED) {
 
         if (vid_init == RUNNING) {				            // If halted ... freeze display and, display valid
-
-            SDL_UpdateWindowSurface(window);				// Write the surface to the host system window
-
             if (!nostore && sim_is_running)                 // Only decay the pixels in store mode and if the simulator is running
                 for (i = 0,p=(unsigned char *)pixels;i < surlen/4; i++, p++)
                     for (j = 0,d = colmap;j < 3;j++, p++, d++)
                         if (*p)
-                            *p = (unsigned char)(*p * (*d) - 1);	// Decay none zero pixels only
+                            *p = (unsigned char)((double)*p * (*d));	// Decay pixels>0 only
         }
-
-        tnew = sim_os_msec();
-        tvl = 20 - tnew + told;				// Calculate delay required for a constant update time of 20mSec. 
-        if (tvl < 0)						// System not fast enough so just continue with no delay.
-            tvl = 0;
-        SDL_Delay(tvl);
     }
     return 0;							// The window has been closed by vid_close ... exit thread
 }
@@ -728,8 +732,17 @@ static int MLoop() {
             return 0;				// Wait until window has been initialised
         case WINDOW_OK:
             vid_create_window();	// Create window and begin receiving events
+            return 0;
+        case RUNNING:               // Update display
+        if (dflag++<8)
             break;
-        case RUNNING:               // No action
+		//SDL_UpdateWindowSurface(window); 
+		SDL_UpdateTexture(tex, NULL, surface->pixels, surface->pitch);
+		//SDL_RenderClear(rend);
+		SDL_RenderCopy(rend, tex, NULL, NULL);
+		SDL_RenderPresent(rend);
+        Refresh(NULL);
+        dflag=0;
             break;
         case CLOSING:
             return -1;				// Exit message loop and start shutdown
@@ -786,6 +799,12 @@ static int MLoop() {
                 case SDL_USEREVENT:
                     if (event.window.event == EVENT_BEEP)
                         vid_beep_event();
+                    break;
+                case SDL_TEXTINPUT:
+                    write_console_input(event.text.text,1);
+                    break;
+                default:
+                    return 0;
         }
     }
     return 0;
@@ -805,9 +824,9 @@ int vid_poll_mouse (SIM_MOUSE_EVENT *mev)
 
     return SCPE_OK;
 }
-
 t_stat vid_poll_kb (SIM_KEY_EVENT *ev) {
 
+    uint32 kval;
 
     if (!xkev)
         return SCPE_EOF;
@@ -815,7 +834,14 @@ t_stat vid_poll_kb (SIM_KEY_EVENT *ev) {
         return SCPE_EOF;								/* Single events only */
     memcpy(ev,xkev,sizeof(SIM_KEY_EVENT));
     lstst = xkev->state;
-    lstcd = xkev->key;
+    kval = lstcd = xkev->key;
+    if (!xkev->state) {
+        if (kval<32)
+            write_console_input((char *)&kval,1);
+        kval &= 31;
+        if (xkev->mod & KMOD_CTRL)
+            write_console_input((char *)&kval,1);
+    }
     return SCPE_OK;
 }
 
@@ -826,11 +852,18 @@ function. At present, level and color are ignored.
 */
 
 t_stat vid_setpixel(int ix,int iy,int level,int color) {
-    Uint32 *p;
+    Uint32 *p,pmsk,i;
+    unsigned char* pz,*pv=(unsigned char *)&pxval;
 
+    pmsk = (alias << 16) | (alias << 8) | alias;
     if (vid_init == RUNNING) {
-        p=(Uint32 *)(pixels + (iy * surface->pitch) + (ix * sizeof(Uint32)));
-        *p = pxval;
+        p = (Uint32 *)(pixels + (iy * surface->pitch) + (ix * sizeof(Uint32)));
+        pz = (pixels + (iy * surface->pitch) + (ix * sizeof(Uint32)));
+        if (alias)
+            for (i = 0; i < 3; i++, pz++ , pv++)
+                *pz = (alias * *pv) >> 8;
+        else
+            *p = pxval;
     }
     return SCPE_OK;
 }

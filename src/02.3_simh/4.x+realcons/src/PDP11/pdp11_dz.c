@@ -559,7 +559,7 @@ t_stat dz_svc (UNIT *uptr)
 {
 int32 dz, t, newln, muxln;
 
-sim_debug(DBG_TRC, find_dev_from_unit(uptr), "dz_svc()\n");
+sim_debug(DBG_TRC, find_device_from_unit(uptr), "dz_svc()\n");
 for (dz = t = 0; dz < dz_desc.lines/DZ_LINES; dz++)     /* check enabled */
     t = t | (dz_csr[dz] & CSR_MSE);
 if (t) {                                                /* any enabled? */

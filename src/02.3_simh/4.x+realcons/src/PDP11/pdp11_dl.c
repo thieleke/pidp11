@@ -594,7 +594,7 @@ return r;
 
 t_value dlx_tu58_count (void)
 {
-DEVICE *td_dptr = find_dev ("TDC");
+DEVICE *td_dptr = find_device ("TDC");
 
 if ((td_dptr == NULL) ||
     (td_dptr->flags & DEV_DIS))

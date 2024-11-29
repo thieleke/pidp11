@@ -127,7 +127,7 @@ struct display {
 static struct phosphor p17[] = {{0.8,0.998,0.8,0x8080ff}};
 
 	/* green phosphor for VR14, VR17, VR20 */
-static struct phosphor p29[] = {{0.0,0.8,0.0,0xff00}};
+static struct phosphor p29[] = {{0.0,0.9,0.0,0xff00}};
 
     /* P40 blue-white spot with yellow-green decay (.045s to 10%?) */
 static struct phosphor p40[] = {{0.8,0.98,0.98,0xb0b0ff}};

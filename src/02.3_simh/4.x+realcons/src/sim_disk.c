@@ -347,7 +347,7 @@ t_stat sim_disk_set_capac (UNIT *uptr, int32 val, CONST char *cptr, void *desc)
 {
 t_offset cap;
 t_stat r;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if ((cptr == NULL) || (*cptr == 0))
     return SCPE_ARG;
@@ -365,7 +365,7 @@ return SCPE_OK;
 t_stat sim_disk_show_capac (FILE *st, UNIT *uptr, int32 val, CONST void *desc)
 {
 const char *cap_units = "B";
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 t_offset capac = ((t_offset)uptr->capac)*((dptr->flags & DEV_SECTORS) ? 512 : 1);
 
 if ((dptr->dwidth / dptr->aincr) == 16)
@@ -685,7 +685,7 @@ uint8 *tbuf = NULL;
 sim_debug (ctx->dbit, ctx->dptr, "sim_disk_wrsect(unit=%d, lba=0x%X, sects=%d)\n", (int)(uptr-ctx->dptr->units), lba, sects);
 
 if (uptr->dynflags & UNIT_DISK_CHK) {
-    DEVICE *dptr = find_dev_from_unit (uptr);
+    DEVICE *dptr = find_device_from_unit (uptr);
     uint32 capac_factor = ((dptr->dwidth / dptr->aincr) == 16) ? 2 : 1; /* capacity units (word: 2, byte: 1) */
     t_lba total_sectors = (t_lba)((uptr->capac*capac_factor)/(ctx->sector_size/((dptr->flags & DEV_SECTORS) ? 512 : 1)));
     t_lba sect;
@@ -1115,7 +1115,7 @@ uint16 CheckSum1, CheckSum2;
 uint32 ScbLbn = 0;
 t_offset ret_val = (t_offset)-1;
 
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return ret_val;
 capac_factor = ((dptr->dwidth / dptr->aincr) == 16) ? 2 : 1; /* save capacity units (word: 2, byte: 1) */
 saved_capac = uptr->capac;
@@ -1201,7 +1201,7 @@ uint16 CheckSum1, CheckSum2;
 uint32 ScbLbn;
 t_offset ret_val = (t_offset)-1;
 
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return ret_val;
 capac_factor = ((dptr->dwidth / dptr->aincr) == 16) ? 2 : 1; /* save capacity units (word: 2, byte: 1) */
 saved_capac = uptr->capac;
@@ -1271,7 +1271,7 @@ t_offset ret_val = (t_offset)-1;
 int i;
 uint32 max_lbn = 0, max_lbn_partnum = 0;
 
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return ret_val;
 capac_factor = ((dptr->dwidth / dptr->aincr) == 16) ? 2 : 1; /* save capacity units (word: 2, byte: 1) */
 saved_capac = uptr->capac;
@@ -1340,7 +1340,7 @@ if (uptr->flags & UNIT_DIS)                             /* disabled? */
     return SCPE_UDIS;
 if (!(uptr->flags & UNIT_ATTABLE))                      /* not attachable? */
     return SCPE_NOATT;
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_NOATT;
 if (sim_switches & SWMASK ('F')) {                      /* format spec? */
     char gbuf[CBUFSIZE];
@@ -1809,7 +1809,7 @@ if (!(uptr->flags & UNIT_ATTABLE))                      /* attachable? */
     return SCPE_NOATT;
 if (!(uptr->flags & UNIT_ATT))                          /* attached? */
     return SCPE_OK;
-if (NULL == find_dev_from_unit (uptr))
+if (NULL == find_device_from_unit (uptr))
     return SCPE_OK;
 auto_format = ctx->auto_format;
 
@@ -2050,7 +2050,7 @@ if ((sec < 2) || (wds < 16))
     return SCPE_ARG;
 if ((uptr->flags & UNIT_ATT) == 0)
     return SCPE_UNATT;
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_NOATT;
 if (uptr->flags & UNIT_RO)
     return SCPE_RO;
@@ -2089,7 +2089,7 @@ return stat;
 
 void sim_disk_data_trace(UNIT *uptr, const uint8 *data, size_t lba, size_t len, const char* txt, int detail, uint32 reason)
 {
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if (sim_deb && (dptr->dctrl & reason)) {
     char pos[32];

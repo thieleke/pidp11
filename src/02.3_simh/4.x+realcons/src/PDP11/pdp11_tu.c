@@ -987,7 +987,7 @@ return sim_tape_detach (uptr);
 
 t_stat tu_set_fmtr (UNIT *uptr, int32 val, CONST char *cptr, void *desc)
 {
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if (cptr != NULL)
     return SCPE_ARG;
@@ -1001,7 +1001,7 @@ return SCPE_OK;
 
 t_stat tu_show_fmtr (FILE *st, UNIT *uptr, int32 val, CONST void *desc)
 {
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if (dptr == NULL)
     return SCPE_IERR;

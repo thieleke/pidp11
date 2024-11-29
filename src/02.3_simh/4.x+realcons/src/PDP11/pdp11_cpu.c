@@ -720,7 +720,7 @@ t_value realcons_PSW; // buffer for program status word
 								   // Events are called in SimH-code as pointers to functions in panel logic
 extern console_controller_event_func_t	realcons_event_operator_halt; // scp.c, needed here
 extern console_controller_event_func_t	realcons_event_step_halt; // scp.c, needed here
-console_controller_event_func_t	realcons_event_cpu_reset;
+extern console_controller_event_func_t	realcons_event_cpu_reset;
 console_controller_event_func_t	realcons_event_opcode_any; // triggered after any opcode execution
 console_controller_event_func_t realcons_event_opcode_halt;
 console_controller_event_func_t	realcons_event_opcode_reset; // triggered after execution of RESET

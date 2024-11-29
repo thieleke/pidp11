@@ -454,7 +454,7 @@ t_stat sim_tape_attach (UNIT *uptr, CONST char *cptr)
 {
 DEVICE *dptr;
 
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_NOATT;
 return sim_tape_attach_ex (uptr, cptr, ((dptr->flags & DEV_DEBUG) || (dptr->debflags)) ? 0xFFFFFFFF : 0, 0);
 }
@@ -468,7 +468,7 @@ char gbuf[CBUFSIZE];
 t_stat r;
 t_bool auto_format = FALSE;
 
-if ((dptr = find_dev_from_unit (uptr)) == NULL)
+if ((dptr = find_device_from_unit (uptr)) == NULL)
     return SCPE_NOATT;
 if (sim_switches & SWMASK ('F')) {                      /* format spec? */
     cptr = get_glyph (cptr, gbuf, 0);                   /* get spec */
@@ -2522,7 +2522,7 @@ size_t i;
 uint32 objc, sizec;
 uint32 *countmap = NULL;
 uint8 *recbuf = NULL;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 
 if ((uptr == NULL) || (uptr->fileref == NULL))
     return 0;

@@ -445,7 +445,7 @@ static DEBTAB dup_debug[] = {
    they fall in different priorities in the autoconfigure address and vector
    rules.
    This 'shared' unit model therefore means we can't call the 
-   find_dev_from_unit api to uniquely determine the device structure.  
+   find_device_from_unit api to uniquely determine the device structure.  
    We define the DUPDPTR macro to return the active device pointer when 
    necessary.
  */

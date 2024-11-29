@@ -2,7 +2,7 @@
 #
 #
 # install script for PiDP-11
-# v0.20180511
+# v20231218
 #
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -16,8 +16,65 @@ apt-get install libpcap-dev
 apt-get install libreadline-dev
 # Install screen
 apt-get install screen
+# Install newer RPC system
+apt-get install libtirpc-dev
+
+
+# 20231218 - deal with user choice of precompiled 64/32 bit or compile from src
+# =============================================================================
+pidpath=/opt/pidp11
+
+while true; do
+
+    read -p "Install precompiled (3)2 bit, precompiled (6)4 bit binaries or (C)ompile from source? " prxn
+    case $prxn in
+        [3]* ) 
+            subdir=backup32bit-binaries
+            echo Copying binaries from /opt/pidp11/bin/$subdir
+            sudo cp $pidpath/bin/$subdir/pdp11_realcons $pidpath/src/02.3_simh/4.x+realcons/bin-rpi/pdp11_realcons
+            sudo cp $pidpath/bin/$subdir/scansw $pidpath/src/11_pidp_server/scanswitch/scansw
+            sudo cp $pidpath/bin/$subdir/pidp1170_blinkenlightd $pidpath/src/11_pidp_server/pidp11/bin-rpi/pidp1170_blinkenlightd
+            break;;
+        [6]* ) 
+            subdir=backup64bit-binaries
+            sudo cp $pidpath/bin/$subdir/pdp11_realcons $pidpath/src/02.3_simh/4.x+realcons/bin-rpi/pdp11_realcons
+            sudo cp $pidpath/bin/$subdir/scansw $pidpath/src/11_pidp_server/scanswitch/scansw
+            sudo cp $pidpath/bin/$subdir/pidp1170_blinkenlightd $pidpath/src/11_pidp_server/pidp11/bin-rpi/pidp1170_blinkenlightd
+            break;;
+        [Cc]* ) 
+            sudo rm $pidpath/src/02.3_simh/4.x+realcons/bin-rpi/pdp11_realcons
+            sudo rm $pidpath/src/11_pidp_server/scanswitch/scansw
+            sudo rm $pidpath/src/11_pidp_server/pidp11/bin-rpi/pidp1170_blinkenlightd
+            sudo $pidpath/src/makeclient.sh
+            sudo $pidpath/src/makeserver.sh
+            break;;
+        * ) echo "Please answer 3,6 or C.";;
+    esac
+done
+echo $prxn - Done.
+
+# =============================================================================
+
+
 # Run xhost + at GUI start to allow access for vt11. Proof entire setup needs redoing.
-echo xhost + >> /etc/xdg/lxsession/LXDE-pi/autostart
+# (this will not work on Wayland, just X11)
+echo
+echo
+echo NOTE: if you want to use RT-11 VT graphics, then:
+echo make sure to run 'sudo raspi-config', and enable X11 instead of Wayland.
+echo ...details: in raspi-config, choose Advanced Options->Wayland->X11, then Finish to reboot
+echo
+echo
+new_config_line="xhost +"
+config_file="/etc/xdg/lxsession/LXDE-pi/autostart"
+# Check if the line already exists in the config file
+if ! grep -qF "$new_config_line" "$config_file"; then
+    # If the line doesn't exist, append it to the file
+    sudo echo "$new_config_line" >> "$config_file"
+    echo "Line added to $config_file"
+else
+    echo "Line already exists in $config_file"
+fi
 
 
 # Set up pidp11 init script, provided pidp11 is installed in /opt/pidp11
@@ -44,3 +101,25 @@ then
 else
 	sed -e "\$a/home/pi/pdp.sh" -i /home/pi/.profile
 fi
+
+
+# 20231218 - install all operating systems, if desired
+# =============================================================================
+
+while true; do
+    read -p "Download and install operating systems? " prxn
+    case $prxn in
+        [Yy]* ) 
+	    cd /opt/pidp11
+            sudo wget http://pidp.net/pidp11/systems.tar.gz
+            sudo gzip -d systems.tar.gz
+            sudo tar -xvf systems.tar
+	    break;;
+        [Nn]* ) 
+	    echo operating systems not added at your request. You can do it later.
+            break;;
+        * ) echo "Please answer Y or N.";;
+    esac
+done
+echo $prxn - Done.
+

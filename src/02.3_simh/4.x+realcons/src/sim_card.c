@@ -491,7 +491,7 @@ sim_read_card(UNIT * uptr)
     if ((uptr->flags & UNIT_ATT) == 0)
         return SCPE_UNATT;      /* attached? */
 
-    dptr = find_dev_from_unit( uptr);
+    dptr = find_device_from_unit( uptr);
     data = (struct _card_data *)uptr->up7;
     sim_debug(DEBUG_CARD, dptr, "Read card ");
 
@@ -867,7 +867,7 @@ sim_punch_card(UNIT * uptr, UNIT *stkuptr)
     }
 
     data = (struct _card_data *)uptr->up7;
-    dptr = find_dev_from_unit(uptr);
+    dptr = find_device_from_unit(uptr);
     outp = 0;
 
     /* Fix mode if in auto mode */

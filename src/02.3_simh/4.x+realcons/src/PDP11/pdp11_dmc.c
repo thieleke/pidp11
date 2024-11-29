@@ -1381,7 +1381,7 @@ return 0;
 
 t_stat dmc_showpeer (FILE* st, UNIT* uptr, int32 val, CONST void* desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 char *peer = ((dptr == &dmc_dev)? &dmc_peer[dmc][0] : &dmp_peer[dmc][0]);
 
@@ -1394,7 +1394,7 @@ return SCPE_OK;
 
 t_stat dmc_setpeer (UNIT* uptr, int32 val, CONST char* cptr, void* desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 char *peer = ((dptr == &dmc_dev)? &dmc_peer[dmc][0] : &dmp_peer[dmc][0]);
 char host[PEERSIZE], port[PEERSIZE];
@@ -1413,7 +1413,7 @@ return SCPE_OK;
 
 t_stat dmc_showspeed (FILE* st, UNIT* uptr, int32 val, CONST void* desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 uint32 *speeds = ((dptr == &dmc_dev)? dmc_speed : dmp_speed);
 
@@ -1427,7 +1427,7 @@ return SCPE_OK;
 
 t_stat dmc_setspeed (UNIT* uptr, int32 val, CONST char* cptr, void* desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 uint32 *speeds = ((dptr == &dmc_dev)? dmc_speed : dmp_speed);
 t_stat r;
@@ -1456,7 +1456,7 @@ return SCPE_OK;
  */
 t_stat dmc_setcorrupt (UNIT *uptr, int32 val, CONST char *cptr, void *desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 int32 *hunger = (dptr == &dmc_dev) ? &dmc_corruption[dmc] : &dmp_corruption[dmc];
 t_stat r;
@@ -1478,7 +1478,7 @@ return SCPE_OK;
 
 t_stat dmc_showcorrupt (FILE *st, UNIT *uptr, int32 val, CONST void *desc)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 int32 *hunger = (dptr == &dmc_dev) ? &dmc_corruption[dmc] : &dmp_corruption[dmc];
 
@@ -1761,7 +1761,7 @@ return dmc_reset ((DEVICE *)desc);                  /* setup devices and auto co
 
 t_stat dmc_shownumdevices (FILE *st, UNIT *uptr, int32 val, CONST void *desc)
 {
-DEVICE *dptr = (UNIBUS) ? find_dev_from_unit (uptr) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? find_device_from_unit (uptr) : &dmv_dev;
 
 fprintf (st, "lines=%d", dptr->numunits-2);
 return SCPE_OK;
@@ -2665,7 +2665,7 @@ return SCPE_OK;
 t_stat dmc_timer_svc (UNIT *uptr)
 {
 int32 dmc, active;
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 TMXR *mp = (dptr == &dmc_dev) ? &dmc_desc : &dmp_desc;
 CTLR *controller;
 
@@ -3960,7 +3960,7 @@ return ans;
 
 t_stat dmc_attach (UNIT *uptr, CONST char *cptr)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 TMXR *mp = (dptr == &dmc_dev) ? &dmc_desc : &dmp_desc;
 t_stat ans = SCPE_OK;
@@ -3990,7 +3990,7 @@ return ans;
 
 t_stat dmc_detach (UNIT *uptr)
 {
-DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_dev_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
+DEVICE *dptr = (UNIBUS) ? ((&dmc_dev == find_device_from_unit(uptr)) ? &dmc_dev : &dmp_dev) : &dmv_dev;
 int32 dmc = (int32)(uptr-dptr->units);
 TMXR *mp = (dptr == &dmc_dev) ? &dmc_desc : &dmp_desc;
 TMLN *lp = &mp->ldsc[dmc];

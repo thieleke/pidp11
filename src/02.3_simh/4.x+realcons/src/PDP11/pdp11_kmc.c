@@ -1570,7 +1570,7 @@ static t_stat kmc_rxService (UNIT *rxup) {
 static void kmc_masterClear(int32 k) {
 
     if (sim_deb) {
-        DEVICE *dptr = find_dev_from_unit (&tx_units[0][k]);
+        DEVICE *dptr = find_device_from_unit (&tx_units[0][k]);
 
         sim_debug (DF_INF, dptr, "KMC%d: Master clear\n", k);
     }
@@ -2801,7 +2801,7 @@ static t_stat kmc_setDeviceCount (UNIT *txup, int32 val, CONST char *cptr, void 
     int32 newln;
     uint32 dupidx;
     t_stat r;
-    DEVICE *dptr = find_dev_from_unit(txup);
+    DEVICE *dptr = find_device_from_unit(txup);
     
     if (cptr == NULL)
         return SCPE_ARG;
@@ -2828,7 +2828,7 @@ static t_stat kmc_setDeviceCount (UNIT *txup, int32 val, CONST char *cptr, void 
 
 #if KMC_UNITS > 1
 static t_stat kmc_showDeviceCount (FILE *st, UNIT *txup, int32 val, CONST void *desc) {
-    DEVICE *dev = find_dev_from_unit(txup);
+    DEVICE *dev = find_device_from_unit(txup);
 
     if (dev->flags & DEV_DIS) {
             fprintf (st, "Disabled");
@@ -2920,7 +2920,7 @@ t_stat kmc_showStatus (FILE *st, UNIT *up, int32 v,  CONST void *dp) {
     int32 k = up->unit_kmc;
     int32 line;
     t_bool first = TRUE;
-    DEVICE *dev = find_dev_from_unit(up);
+    DEVICE *dev = find_device_from_unit(up);
     const char *ucname;
 
     if ((dev->flags & DEV_DIS) || (((uint32)k) >= dev->numunits)) {

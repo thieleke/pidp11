@@ -754,7 +754,7 @@ t_seccnt sectsread;
 int32 i, da, awc;
 uint32 ma;
 uint16 comp;
-DEVICE *dptr = find_dev_from_unit (uptr);
+DEVICE *dptr = find_device_from_unit (uptr);
 static const char * const funcname[] = {
     "NOP", "WCK", "GSTA", "SEEK",
     "RHDR", "WT", "RD", "RNOHDR", "SPECIAL",

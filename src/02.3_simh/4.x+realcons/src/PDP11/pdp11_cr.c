@@ -1578,7 +1578,7 @@ t_stat cr_set_type (    UNIT    *uptr,
                         CONST char    *cptr,
                         void    *desc    )
 {
-    DEVICE *dptr = find_dev_from_unit (uptr);
+    DEVICE *dptr = find_device_from_unit (uptr);
     DIB *dibp;
 
     /* disallow type change if currently attached */

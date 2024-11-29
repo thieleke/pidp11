@@ -185,6 +185,7 @@ void vid_draw (int32 x, int32 y, int32 w, int32 h, uint32 *buf);
 void vid_beep (void);
 void vid_refresh (void);
 const char *vid_version (void);
+extern int alias;
 const char *vid_key_name (int32 key);
 t_stat vid_set_cursor (t_bool visible, uint32 width, uint32 height, uint8 *data, uint8 *mask, uint32 hot_x, uint32 hot_y);
 t_stat vid_show_video (FILE* st, UNIT* uptr, int32 val, CONST void* desc);
@@ -198,7 +199,7 @@ t_stat vid_set_release_key (FILE* st, UNIT* uptr, int32 val, CONST void* desc);
 t_stat vid_show_release_key (FILE* st, UNIT* uptr, int32 val, CONST void* desc);
 t_stat vid_lock_cursor(void);
 t_stat vid_unlock_cursor(void);
-
+extern void write_console_input(unsigned char *str, int length);
 extern uint32 vid_mono_palette[2];
 void vid_set_cursor_position (int32 x, int32 y);        /* cursor position (set by calling code) */
 

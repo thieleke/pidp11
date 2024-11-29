@@ -1465,7 +1465,7 @@ static t_stat td_set_ctrls (UNIT *uptr, int32 val, CONST char *cptr, void *desc)
 {
 int32 newln, i;
 t_stat r;
-DEVICE *dli_dptr = find_dev ("DLI");
+DEVICE *dli_dptr = find_device ("DLI");
 
 if (cptr == NULL)
     return SCPE_ARG;

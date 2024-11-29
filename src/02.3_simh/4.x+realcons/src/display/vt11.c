@@ -276,7 +276,7 @@ enum linetype { SOLID=0, LONG_DASH, SHORT_DASH, DOT_DASH };
  * graphplot increment register value   15:10
  * X position register value            9:0
  */
-static unsigned char graphplot_step = 0;/* (scaled) graphplot step increment */
+static int32         graphplot_step = 0;/* (scaled) graphplot step increment */
 static int32         xpos = 0;          /* X position register * PSCALEF */
                                         /* note: offset has been applied! */
 static int           lp_xpos;           /* (normalized) */
@@ -395,6 +395,7 @@ static unsigned char    lp1_down = 0;   /* 1 bit: LP #1 switch was depressed */
 static unsigned char    lp1_up = 0;     /* 1 bit: LP #1 switch was released */
 #define lp1_intr_ena    stack[8]._lp1intr /* generate interrupt on LP #1 hit */
 #define lp1_sw_intr_ena stack[8]._lp1swintr /* generate intr. on LP #1 sw chg */
+
 /*
  * light pen "tip switch" activated (for VS60 emulation etc.)
  * should only be set from "driver" (window system layer)
@@ -595,9 +596,10 @@ static unsigned char refresh_rate = 0;  /* 2 bits:
 #define BLINK_COUNT 67                  /* 67 milliseconds */
 #endif
 
-unsigned char vt11_csp_w = VT11_CSP_W;  /* horizontal character spacing */
-unsigned char vt11_csp_h = VT11_CSP_H;  /* vertical character spacing */
+int32 vt11_csp_w = VT11_CSP_W;          /* horizontal character spacing */
+int32 vt11_csp_h = VT11_CSP_H;          /* vertical character spacing */
 /* VS60 spacing depends on char scale; above are right for char scale x1 */
+int32 vt11_alias = 0;                   /* Antialiasing display flag */
 
 /* VS60 has a menu area to the right of the "main working surface" */
 #define MENU_OFFSET (1024 + VR48_GUTTER)        /* left edge of menu on CRT */
@@ -647,6 +649,7 @@ static int32 clip_x1, clip_y1, clip_z1; /* CRT coords for exit point */
 #endif
 
 static void lineTwoStep(int32, int32, int32, int32, int32, int32);
+static void xlineTwoStep(int32, int32, int32, int32, int32, int32);
                                         /* forward reference */
 
 /*
@@ -1210,7 +1213,7 @@ illum3(int32 x, int32 y, int32 z)
 
     i = dintens(z);
 
-    if (display_point((int)x, (int)y, i, 0)   /* XXX VS60 might switch color */
+    if (display_point((int)x, (int)y, i, 0)    /* XXX VS60 might switch color */
         /* VT11, per maintenance spec, has threshold 6 for CHAR, 4 for others */
         /* but the classic Lunar Lander uses 3 for its menu and thrust bar! */
         /* I seem to recall that both thresholds were 4 for the VS60 (VR48). */
@@ -1221,11 +1224,11 @@ illum3(int32 x, int32 y, int32 z)
         /* The following imposes thresholds of 3 for all graphic objects. */
         && (i >= (DISPLAY_INT_MAX-4))   /* (using i applies depth cueing) */
 #endif
-        && !lp_suppress && !lp0_hit) {
+        && !lp_suppress) {
         lp0_hit = 1;
         if (lp0_intr_ena)
             lphit_irq = 1;              /* will lead to an interrupt */
-      /*
+        /*
          * Save LP hit coordinates so CPU can look at them; the virtual position
          * registers cannot be reported on LP interrupt, since they track the
          * (pre-clipping) end of the vector that was being drawn.
@@ -1337,6 +1340,158 @@ lpoint(int32 x, int32 y, int32 z)
         /* note: Z coordinate is already in virtual CRT units */
         illum3(x * reduce, y * reduce, z);
 }
+
+/*
+ * Updated anti-aliasing code ISS 2019
+ * This is taken from https://en.wikipedia.org/wiki/Xiaolin_Wu%27s_line_algorithm
+ * Most of the original code is used. Hence, the line2step function requires x0,y0,x1,y1 to be retained
+ * as they may be swapped in the function.
+ * This function requires that the pixel luminance values are variable.
+ * The 'alias' variable holds this data which is used by vid_setpixel in sim_video.c
+*/
+
+// swaps two numbers 
+void swap(int* a , int*b) 
+{ 
+	int temp = *a; 
+	*a = *b; 
+	*b = temp; 
+} 
+
+// returns absolute value of number 
+double absolute(double x ) 
+{ 
+	if (x < 0) return -x; 
+	else return x; 
+} 
+
+//returns integer part of a doubleing point number 
+int iPartOfNumber(double x) 
+{ 
+	return (int)x; 
+} 
+
+//rounds off a number 
+int roundNumber(double x) 
+{ 
+	return iPartOfNumber(x + 0.5) ; 
+} 
+
+//returns fractional part of a number 
+double fPartOfNumber(double x) 
+{ 
+	if (x>0) return x - iPartOfNumber(x); 
+	else return x - (iPartOfNumber(x)+1); 
+
+} 
+
+//returns 1 - fractional part of number 
+double rfPartOfNumber(double x) 
+{ 
+	return 1 - fPartOfNumber(x); 
+}
+
+#define VPOINT do { znum += dz; /* 2 * original_dz */ \
+                    z0 = znum / twoN;   /* truncates */ \
+                    if (lphit_irq && !stroking) goto hit; \
+                    /* XXX  longjmp from hit detector may be more efficient */ \
+                    lpoint(x0, y0, z0); \
+               } while (0)
+
+extern int alias;       // Switch to change pixel intensity range
+#define gma 120
+
+static void
+lineTwoStep(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
+{ 
+    double dx, dy, gradient, intersectY;
+	int steep = absolute(y1 - y0) > absolute(x1 - x0) ;
+    int xpxl1, xpxl2, x, dz;
+    long twoN, znum;
+    int hx1=x1,hy1=y1,hx0=x0,hy0=y0;
+
+    if (!vt11_alias) {
+        xlineTwoStep(x0, y0, z0, x1, y1, z1);
+        return;
+    }
+
+    dz = z1 - z0;
+	// swap the co-ordinates if slope > 1 or we 
+	// draw backwards 
+	if (steep) 
+	{ 
+		swap(&x0 , &y0); 
+		swap(&x1 , &y1); 
+	} 
+	if (x0 > x1) 
+	{ 
+		swap(&x0 ,&x1); 
+		swap(&y0 ,&y1); 
+	} 
+
+	//compute the slope 
+	dx = x1-x0; 
+	dy = y1-y0; 
+	gradient = dy/dx; 
+	if (dx == 0.0) 
+		gradient = 1; 
+
+	xpxl1 = x0; 
+	xpxl2 = x1; 
+	intersectY = y0; 
+    twoN = 2 * dx, znum = twoN * z0 + dz;
+	// main loop 
+	if (steep) 
+	{ 
+		for (x = xpxl1 ; x <=xpxl2 ; x++) 
+		{ 
+			// pixel coverage is determined by fractional 
+			// part of y co-ordinate
+            // display_point((int)x, (int)y, DISPLAY_INT_MAX, 0);
+            alias = (int)(255-gma*rfPartOfNumber(intersectY));
+			lpoint(iPartOfNumber(intersectY), x, z0);
+            alias = (int)(255-gma*fPartOfNumber(intersectY));
+			lpoint(iPartOfNumber(intersectY)-1, x, z0);
+			intersectY += gradient;
+            y0 = x;
+            x0 = (int)intersectY;
+            if (lphit_irq && !stroking) goto hit;
+		} 
+	} 
+	else
+	{ 
+		for (x = xpxl1 ; x <=xpxl2 ; x++) 
+		{ 
+			// pixel coverage is determined by fractional 
+			// part of y co-ordinate 
+            alias = (int)(255-gma*rfPartOfNumber(intersectY));
+			lpoint(x, iPartOfNumber(intersectY), z0);
+            alias = (int)(255-gma*fPartOfNumber(intersectY));
+			lpoint(x, iPartOfNumber(intersectY)-1, z0);
+			intersectY += gradient; 
+            x0 = x;
+            y0 = (int)intersectY;
+            if (lphit_irq && !stroking) goto hit;
+		} 
+	}
+    
+    lpoint(hx1, hy1, z1);         /* not TPOINT (0-length vector on resume) */
+    alias = 0;
+
+    return;
+
+    /* here if LP hit interrupt during rendering */
+  hit:
+    more_vect = 1;
+    save_x0 = hx0 * reduce;
+    save_y0 = hy0 * reduce;
+    save_z0 = z0;
+    save_x1 = hx1 * reduce;
+    save_y1 = hy1 * reduce;
+    save_z1 = z1;
+    alias = 0;
+} 
+
 
 /*
  * 2-step algorithm, developed by Xiaolin Wu
@@ -1363,7 +1518,7 @@ lpoint(int32 x, int32 y, int32 z)
  */
 
 static void
-lineTwoStep(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
+xlineTwoStep(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
                                 /* virtual CRT units (offset and normalized) */
 {
     int32 dx, dy, dz;
@@ -1725,7 +1880,7 @@ clip3(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
      * N is an outward normal vector.
      * L, R, B, T denote edges (left, right, bottom, top).
      * PE denotes "potentially entering", PL "potentially leaving".
-     * n, d denote numerator, denominator (avoids floating point).
+     * n, d denote numerator, denominator (avoids doubleing point).
      */
 
     /*
@@ -1773,24 +1928,38 @@ clip3(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
      *                                  tPL := tL
      */
 
+    /*
+         The following code is commented out here and written more
+         compactly below since tPEn, tPEd, tPLn and tPLd are constants.
+
     if (rdx < 0) {
         if (x0 <= 0 && x0 >= rdx) {
             if (tPEd > 0) {
                 if (x0 * (long)tPEd < (long)tPEn * rdx)
                     tPEn = x0, tPEd = rdx;
-            } else                      /* tPEd < 0 */
+            } else                      // tPEd < 0 
                 if (x0 * (long)tPEd > (long)tPEn * rdx)
                     tPEn = x0, tPEd = rdx;
         }
-    } else {                            /* rdx > 0 */
+    } else {                            // rdx > 0
         if (x0 >= 0 && x0 <= rdx) {
             if (tPLd > 0) {
                 if (x0 * (long)tPLd < (long)tPLn * rdx)
                     tPLn = x0, tPLd = rdx;
-            } else                      /* tPLd < 0 */
+            } else                      // tPLd < 0
                 if (x0 * (long)tPLd > (long)tPLn * rdx)
                     tPLn = x0, tPLd = rdx;
         }
+    }
+    */
+
+    if (rdx < 0) {
+        if (x0 <= 0 && x0 >= rdx)       /* x0 not positive but less negative than rdx? */
+            tPEn = x0, tPEd = rdx;
+    } else {
+        if ((x0 >= 0 && x0 <= rdx) &&   /* x0 not negative but less than or equal to rdx */
+            (rdx != 0))                 /* and rdx not zero */
+            tPLn = x0, tPLd = rdx;
     }
 
     /*
@@ -1825,26 +1994,26 @@ clip3(int32 x0, int32 y0, int32 z0, int32 x1, int32 y1, int32 z1)
      */
 
     tn = x0 - CLIPXMAX;
-
     if (rdx < 0) {
         if (tn <= 0 && tn >= rdx) {
             if (tPLd > 0) {
                 if (tn * (long)tPLd > (long)tPLn * rdx)
                     tPLn = tn, tPLd = rdx;
-            } else                      /* tPLd < 0 */
+            } else                      // tPLd < 0
                 if (tn * (long)tPLd < (long)tPLn * rdx)
                     tPLn = tn, tPLd = rdx;
         }
-    } else {                            /* rdx > 0 */
+    } else {                            // rdx > 0
         if (tn >= 0 && tn <= rdx) {
             if (tPEd > 0) {
                 if (tn * (long)tPEd > (long)tPEn * rdx)
                     tPEn = tn, tPEd = rdx;
-            } else                      /* tPEd < 0 */
+            } else                      // tPEd < 0
                 if (tn * (long)tPEd < (long)tPEn * rdx)
                     tPEn = tn, tPEd = rdx;
         }
     }
+
 
     /*
      * Bottom:  tB = NB . (PB - P0) / NB . (P1 - P0)
@@ -2121,12 +2290,12 @@ vector3(int i, int32 dx, int32 dy, int32 dz)   /* unscaled display-file units */
                 edge_irq = 1;
             }
             clip_i = i;
-			edge_indic = 1;				 /* Another hack. This bit sets the edge indicator so that RT11 correctly sizes the scroll area for VR14 v VR17. See KMOVLY.MAC for the GT ON/OFF code.*/
             return;                     /* may be drawn later by vt_cycle() */
         case 0:                         /* invisible */
             return;
         default:
             DEBUGF("clip() bad return: %d\n", clip_vect);
+            /* Fallthrough */
         case -1:                        /* visible, not clipped */
             clip_vect = 0;
             break;                      /* draw immediately */
@@ -2155,17 +2324,21 @@ vector3(int i, int32 dx, int32 dy, int32 dz)   /* unscaled display-file units */
      */
 
     if (lp0_hit) {
-        long tangent;
+        long tangent = 0;
         int32 adx = ABS(dx), ady = ABS(dy);
         if (adx >= ady) {
-            tangent = 010000L * dy / dx;        /* signed */
+            if (dx)
+                tangent = 010000L * dy / dx;        /* signed */
             lp_ypos = y0 + tangent * (lp_xpos - x0) / 010000L;
-            tangent = 010000L * dz / dx;
+            if (dx)
+                tangent = 010000L * dz / dx;
             lp_zpos = z0 + tangent * (lp_xpos - x0) / 010000L;
         } else {
-            tangent = 010000L * dx / dy;        /* signed */
+            if (dy)
+                tangent = 010000L * dx / dy;        /* signed */
             lp_xpos = x0 + tangent * (lp_ypos - y0) / 010000L;
-            tangent = 010000L * dz / dy;
+            if (dy)
+                tangent = 010000L * dz / dy;
             lp_zpos = z0 + tangent * (lp_ypos - y0) / 010000L;
         }
         DEBUGF("adjusted LP coords (0%o,0%o,0%o)\r\n",
@@ -2244,10 +2417,10 @@ basic_vector(int i, int dir, int len)   /* unscaled display-file units */
  * are identical, that a full circle is being specified.
  *
  * Although throughout the display simulation substantial effort has been
- * invested to avoid using floating point, this preliminary implementation
- * of the circle/arc generator does use floating point.  Presumably this
+ * invested to avoid using doubleing point, this preliminary implementation
+ * of the circle/arc generator does use doubleing point.  Presumably this
  * is avoidable, but the algorithmic details would need to be worked out.
- * If use of floating point is a problem, #define NO_CONIC_OPT when compiling.
+ * If use of doubleing point is a problem, #define NO_CONIC_OPT when compiling.
  *
  * The Z coordinate is linearly interpolated.
  */
@@ -3101,7 +3274,7 @@ vt11_cycle(int us, int slowdown)
          *  (1) distinct virtual CRT points can be mapped into the same pixel
          *  (2) raster computation might not match that of the actual VT48
          */
-        if (lp0_hit) {
+        if (lp0_hit && dx && dy) {
             long tangent;
             int32 adx = ABS(dx), ady = ABS(dy);
             if (adx >= ady) {
@@ -3812,7 +3985,7 @@ vt11_cycle(int us, int slowdown)
     if (lp0_sw_state != display_lp_sw) {        /* tip-switch state change */
         lp0_sw_state = display_lp_sw;   /* track switch state */
         lp0_up = !(lp0_down = lp0_sw_state);    /* set transition flags */
-        if (lp0_sw_intr_ena && !lp0_up)
+        if (lp0_sw_intr_ena)
             lpsw_irq = 1;
     }
 
@@ -3834,6 +4007,5 @@ vt11_cycle(int us, int slowdown)
 
   age_ret:
     display_age(us, slowdown);
-
     return !maint1 && !maint2 && busy;
 } /* vt11_cycle */
