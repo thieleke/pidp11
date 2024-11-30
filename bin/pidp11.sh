@@ -2,10 +2,12 @@
 
 # for SDL2 graphics
 export DISPLAY=:0
+xhost +
 
 # Make a temp directory in the /run ram disk (if it's not already created)
 sudo mkdir /run/pidp11 2>/dev/null
 sudo chmod a+rw /run/pidp11
+export XDG_RUNTIME_DIR=/run/pidp11
 
 # VT-100
 #oldterm=$TERM
@@ -45,9 +47,9 @@ while
 	) >/run/pidp11/tmpsimhcommand.txt
         echo "/opt/pidp11/systems/$sel" > /run/pidp11/cwd
 	echo "*** Start client/server ***"
-	sudo /opt/pidp11/bin/server11 &
+	sudo -E /opt/pidp11/bin/server11 &
 	sleep 2
-	sudo /opt/pidp11/bin/client11 /run/pidp11/tmpsimhcommand.txt
+	sudo -E /opt/pidp11/bin/client11 /run/pidp11/tmpsimhcommand.txt
 
 	# after simh exits, check if a newly created command file now says exit (meaning pls reboot)
 	if [[ $(< /run/pidp11/tmpsimhcommand.txt) == "exit" ]]; then
